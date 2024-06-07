@@ -1,18 +1,7 @@
 FROM ubuntu:22.04
 
-ARG GOST_VERSION
-ARG TARGETPLATFORM
-
-COPY entrypoint.sh /entrypoint.sh
-
 # install dependencies
-RUN case ${TARGETPLATFORM} in \
-      "linux/amd64")   export ARCH="amd64" ;; \
-      "linux/arm64")   export ARCH="armv8" ;; \
-      *) echo "Unsupported TARGETPLATFORM: ${TARGETPLATFORM}" && exit 1 ;; \
-    esac && \
-    echo "Building for ${ARCH} with GOST ${GOST_VERSION}" &&\
-    apt-get update && \
+RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y curl gnupg lsb-release sudo && \
     curl https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg && \
@@ -21,20 +10,23 @@ RUN case ${TARGETPLATFORM} in \
     apt-get install -y cloudflare-warp && \
     apt-get clean && \
     apt-get autoremove -y && \
-    curl -LO https://github.com/ginuerzh/gost/releases/download/v${GOST_VERSION}/gost-linux-${ARCH}-${GOST_VERSION}.gz && \
-    gunzip gost-linux-${ARCH}-${GOST_VERSION}.gz && \
-    mv gost-linux-${ARCH}-${GOST_VERSION} /usr/bin/gost && \
+    curl -LO https://github.com/ginuerzh/gost/releases/download/v2.11.5/gost-linux-amd64-2.11.5.gz && \
+    gunzip gost-linux-amd64-2.11.5.gz && \
+    mv gost-linux-amd64-2.11.5 /usr/bin/gost && \
     chmod +x /usr/bin/gost && \
-    chmod +x /entrypoint.sh && \
     useradd -m -s /bin/bash warp && \
     echo "warp ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/warp
+
+COPY entrypoint.sh /entrypoint.sh
 
 USER warp
 
 # Accept Cloudflare WARP TOS
 RUN mkdir -p /home/warp/.local/share/warp && \
-    echo -n 'yes' > /home/warp/.local/share/warp/accepted-tos.txt
+    echo -n 'yes' > /home/warp/.local/share/warp/accepted-tos.txt && \
+    sudo chmod +x /entrypoint.sh
 
+ENV ENDPOINT_IP=
 ENV GOST_ARGS="-L :1080"
 ENV WARP_SLEEP=2
 

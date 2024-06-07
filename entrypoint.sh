@@ -16,7 +16,7 @@ fi
 sudo dbus-daemon --config-file=/usr/share/dbus-1/system.conf
 
 # start the daemon
-sudo warp-svc --accept-tos &
+sudo warp-svc --accept-tos | grep -v DEBUG &
 
 # sleep to wait for the daemon to start, default 2 seconds
 sleep "$WARP_SLEEP"
@@ -29,6 +29,12 @@ if [ ! -f /var/lib/cloudflare-warp/reg.json ]; then
         echo "License key found, registering license..."
         warp-cli registration license "$WARP_LICENSE_KEY" && echo "Warp license registered!"
     fi
+
+    # custom endpoint v4 ip (if presented)
+    if [ -n "$ENDPOINT_IP" ]; then
+        warp-cli tunnel endpoint set "$ENDPOINT_IP:4500"
+    fi
+
     # connect to the warp server
     warp-cli connect
 else
